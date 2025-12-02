@@ -4,6 +4,7 @@ interface DockProps {
   theme: 'dark' | 'light';
   windows: Array<{ id: string; component: string; minimized: boolean }>;
   onToggleWindow: (id: string) => void;
+  isLoaded?: boolean;
 }
 
 const dockItems = [
@@ -15,9 +16,9 @@ const dockItems = [
   { id: 'contact', icon: Mail, label: 'Contact', color: '#ff7800' },
 ];
 
-export default function Dock({ theme, windows, onToggleWindow }: DockProps) {
+export default function Dock({ theme, windows, onToggleWindow, isLoaded = true }: DockProps) {
   return (
-    <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-[9998]">
+    <div className={`fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-[9998] transition-all duration-700 delay-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
       <div className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl ${
         theme === 'dark'
           ? 'bg-black/60 border-white/20'

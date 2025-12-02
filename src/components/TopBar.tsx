@@ -8,9 +8,10 @@ interface TopBarProps {
   onRestoreWindow: (id: string) => void;
   onOpenContact: () => void;
   onCloseAllWindows: () => void;
+  isLoaded?: boolean;
 }
 
-export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow, onOpenContact, onCloseAllWindows }: TopBarProps) {
+export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow, onOpenContact, onCloseAllWindows, isLoaded = true }: TopBarProps) {
   const [time, setTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
@@ -137,7 +138,7 @@ export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow,
       ? 'bg-black/80 text-white/90'
       : 'bg-white/80 text-gray-900'
       } backdrop-blur-xl border-b ${theme === 'dark' ? 'border-white/10' : 'border-black/10'
-      } flex items-center justify-between px-4 z-[9999]`}>
+      } flex items-center justify-between px-4 z-[9999] transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
       <div className="flex items-center gap-4">
         <button 
           onClick={onCloseAllWindows}

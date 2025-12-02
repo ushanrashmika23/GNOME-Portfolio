@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
@@ -17,6 +17,7 @@ import DesktopIcon from './components/DesktopIcon';
 export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [desktopIconPosition, setDesktopIconPosition] = useState({ x: 50, y: 100 });
+  const [isLoaded, setIsLoaded] = useState(false);
   const [windows, setWindows] = useState(() => {
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
@@ -103,6 +104,15 @@ export default function App() {
     setDesktopIconPosition({ x, y });
   };
 
+  // Landing animation effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 100); // Small delay for smooth transition
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const renderWindowContent = (component: string) => {
     switch (component) {
       case 'welcome':
@@ -143,8 +153,8 @@ export default function App() {
 
   return (
     <DndProvider backend={dndBackend} options={backendOptions}>
-      <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0`}>
-        <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden`}>
+      <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0 transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden transition-all duration-700 ${isLoaded ? 'scale-100' : 'scale-105 blur-sm'}`}>
           <TopBar
             theme={theme}
             onThemeToggle={toggleTheme}
@@ -152,18 +162,20 @@ export default function App() {
             onRestoreWindow={restoreWindow}
             onOpenContact={openContactWindow}
             onCloseAllWindows={closeAllWindows}
+            isLoaded={isLoaded}
           />
 
-          <div className="relative w-full h-[calc(100vh-40px)] mt-[40px] overflow-hidden">
+          <div className={`relative w-full h-[calc(100vh-40px)] mt-[40px] overflow-hidden transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             {/* Desktop Icons */}
             <DesktopIcon
               theme={theme}
               x={desktopIconPosition.x}
               y={desktopIconPosition.y}
               onMove={moveDesktopIcon}
+              isLoaded={isLoaded}
             />
 
-            {windows.filter(w => !w.minimized).map(window => (
+            {windows.filter(w => !w.minimized).map((window, index) => (
               <Window
                 key={window.id}
                 id={window.id}
@@ -177,6 +189,8 @@ export default function App() {
                 onFocus={focusWindow}
                 onClose={closeWindow}
                 onMinimize={minimizeWindow}
+                animationDelay={index * 150 + 400}
+                isLoaded={isLoaded}
               >
                 {renderWindowContent(window.component)}
               </Window>
@@ -187,6 +201,7 @@ export default function App() {
             theme={theme}
             windows={windows}
             onToggleWindow={toggleWindow}
+            isLoaded={isLoaded}
           />
         </div>
       </div>

@@ -14,6 +14,8 @@ interface WindowProps {
   onFocus: (id: string) => void;
   onClose: (id: string) => void;
   onMinimize: (id: string) => void;
+  animationDelay?: number;
+  isLoaded?: boolean;
 }
 
 const getWindowIcon = (component: string) => {
@@ -81,14 +83,27 @@ export default function Window({
   onFocus,
   onClose,
   onMinimize,
+  animationDelay = 0,
+  isLoaded = true,
 }: WindowProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [isMinimizing, setIsMinimizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
   const windowRef = useRef<HTMLDivElement>(null);
   const positionRef = useRef({ x: initialX, y: initialY });
   const dragStateRef = useRef({ isDragging: false, startX: 0, startY: 0 });
   const rafRef = useRef<number>();
+
+  // Handle entrance animation
+  useEffect(() => {
+    if (isLoaded && !hasAnimated) {
+      const timer = setTimeout(() => {
+        setHasAnimated(true);
+      }, animationDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded, hasAnimated, animationDelay]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.window-controls')) return;
@@ -262,7 +277,7 @@ export default function Window({
           ? 'bg-[#242424]/95 border-[#3d3d3d]'
           : 'bg-white/95 border-gray-200'
         } border backdrop-blur-xl shadow-2xl ${!isDragging ? 'transition-all duration-300 hover:shadow-3xl' : ''
-        } ${isClosing ? 'opacity-0 scale-95 transition-all duration-300' : 'opacity-100 scale-100'
+        } ${isClosing ? 'opacity-0 scale-95 transition-all duration-300' : hasAnimated ? 'opacity-100 scale-100' : 'opacity-0 scale-75 translate-y-8'
         } ${isMinimizing ? 'opacity-0' : ''
         }`}
       style={{

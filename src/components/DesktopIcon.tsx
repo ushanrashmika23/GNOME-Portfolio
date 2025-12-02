@@ -6,9 +6,10 @@ interface DesktopIconProps {
   x: number;
   y: number;
   onMove?: (x: number, y: number) => void;
+  isLoaded?: boolean;
 }
 
-export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
+export default function DesktopIcon({ theme, x, y, onMove, isLoaded = true }: DesktopIconProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -179,7 +180,7 @@ export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
   return (
     <div 
       ref={iconRef}
-      className={`absolute select-none ${isDragging ? 'cursor-grabbing z-50' : 'cursor-grab'}`}
+      className={`absolute select-none transition-all duration-700 delay-300 ${isDragging ? 'cursor-grabbing z-50' : 'cursor-grab'} ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
       style={{ 
         left: 0, 
         top: 0,
