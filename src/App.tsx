@@ -13,10 +13,12 @@ import SkillsWindow from './components/SkillsWindow';
 import ContactWindow from './components/ContactWindow';
 import EducationExperienceWindow from './components/EducationExperienceWindow';
 import DesktopIcon from './components/DesktopIcon';
+import BootLoader from './components/BootLoader';
 
 export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [desktopIconPosition, setDesktopIconPosition] = useState({ x: 50, y: 100 });
+  const [isBooting, setIsBooting] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [windows, setWindows] = useState(() => {
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
@@ -104,14 +106,20 @@ export default function App() {
     setDesktopIconPosition({ x, y });
   };
 
-  // Landing animation effect
+  // Landing animation effect (after boot)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 100); // Small delay for smooth transition
+    if (!isBooting) {
+      const timer = setTimeout(() => {
+        setIsLoaded(true);
+      }, 100); // Small delay for smooth transition
 
-    return () => clearTimeout(timer);
-  }, []);
+      return () => clearTimeout(timer);
+    }
+  }, [isBooting]);
+
+  const handleBootComplete = () => {
+    setIsBooting(false);
+  };
 
   const renderWindowContent = (component: string) => {
     switch (component) {
@@ -152,8 +160,10 @@ export default function App() {
   };
 
   return (
-    <DndProvider backend={dndBackend} options={backendOptions}>
-      <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0 transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+    <>
+      {isBooting && <BootLoader onComplete={handleBootComplete} theme={theme} />}
+      <DndProvider backend={dndBackend} options={backendOptions}>
+        <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0 transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
         <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden transition-all duration-700 ${isLoaded ? 'scale-100' : 'scale-105 blur-sm'}`}>
           <TopBar
             theme={theme}
@@ -206,5 +216,6 @@ export default function App() {
         </div>
       </div>
     </DndProvider>
+    </>
   );
 }
