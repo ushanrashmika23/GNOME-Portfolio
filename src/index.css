@@ -1868,7 +1868,8 @@
 
 .bg-dark-wallpaper {
   background-color: #0a0e1a;
-  background-image: radial-gradient(circle at 20% 30%, #3584e426 0%, #0000 50%), radial-gradient(circle at 80% 20%, #6345ed1f 0%, #0000 50%), radial-gradient(circle at 40% 70%, #f661511a 0%, #0000 50%), radial-gradient(circle at 90% 80%, #3584e414 0%, #0000 50%), radial-gradient(circle at 10% 90%, #9945ff1a 0%, #0000 50%);
+  background: url("./../img/bg1.jpg");
+  /* background-image: radial-gradient(circle at 20% 30%, #3584e426 0%, #0000 50%), radial-gradient(circle at 80% 20%, #6345ed1f 0%, #0000 50%), radial-gradient(circle at 40% 70%, #f661511a 0%, #0000 50%), radial-gradient(circle at 90% 80%, #3584e414 0%, #0000 50%), radial-gradient(circle at 10% 90%, #9945ff1a 0%, #0000 50%); */
   background-position: center;
   background-repeat: repeat;
   background-size: cover;
@@ -1878,7 +1879,8 @@
 }
 
 .bg-light-wallpaper {
-  background: url("https://images.unsplash.com/photo-1762503203666-1f188d6f6a0a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2xvcmZ1bCUyMG1vZGVybiUyMGdyYWRpZW50fGVufDF8fHx8MTc2NDU4ODA1MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral") center / cover;
+  /* background: url("https://images.unsplash.com/photo-1762503203666-1f188d6f6a0a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2xvcmZ1bCUyMG1vZGVybiUyMGdyYWRpZW50fGVufDF8fHx8MTc2NDU4ODA1MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral") center / cover; */
+  background: url("./../img/bg2.jpg") center / cover;
 }
 
 html {

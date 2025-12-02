@@ -95,6 +95,10 @@ export default function App() {
     restoreWindow('contact');
   };
 
+  const closeAllWindows = () => {
+    setWindows(windows.map(w => ({ ...w, minimized: true })));
+  };
+
   const moveDesktopIcon = (x: number, y: number) => {
     setDesktopIconPosition({ x, y });
   };
@@ -147,6 +151,7 @@ export default function App() {
             windows={windows}
             onRestoreWindow={restoreWindow}
             onOpenContact={openContactWindow}
+            onCloseAllWindows={closeAllWindows}
           />
 
           <div className="relative w-full h-[calc(100vh-40px)] mt-[40px] overflow-hidden">

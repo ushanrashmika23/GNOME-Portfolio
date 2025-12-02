@@ -7,9 +7,10 @@ interface TopBarProps {
   windows: Array<{ id: string; component: string; minimized: boolean }>;
   onRestoreWindow: (id: string) => void;
   onOpenContact: () => void;
+  onCloseAllWindows: () => void;
 }
 
-export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow, onOpenContact }: TopBarProps) {
+export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow, onOpenContact, onCloseAllWindows }: TopBarProps) {
   const [time, setTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
@@ -138,10 +139,14 @@ export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow,
       } backdrop-blur-xl border-b ${theme === 'dark' ? 'border-white/10' : 'border-black/10'
       } flex items-center justify-between px-4 z-[9999]`}>
       <div className="flex items-center gap-4">
-        <span className="font-['JetBrains_Mono'] text-sm flex items-center gap-2">
+        <button 
+          onClick={onCloseAllWindows}
+          className="font-['JetBrains_Mono'] text-sm flex items-center gap-2 hover:opacity-80 transition-opacity"
+          title="Close all windows"
+        >
           <img src={me} alt="img" className='w-5 h-5 rounded-full' />
           <span className="hidden md:inline">Ushan</span>Rashmika
-        </span>
+        </button>
 
         {minimizedWindows.length > 0 && (
           <div className="hidden md:flex items-center gap-2">
