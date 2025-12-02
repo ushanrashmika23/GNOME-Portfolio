@@ -19,7 +19,7 @@ export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [desktopIconPosition, setDesktopIconPosition] = useState({ x: 50, y: 100 });
   const [isBooting, setIsBooting] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [windows, setWindows] = useState(() => {
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
