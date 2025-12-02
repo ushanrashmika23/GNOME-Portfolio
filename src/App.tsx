@@ -18,28 +18,31 @@ export default function App() {
   const [windows, setWindows] = useState(() => {
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
-    
+
+    // Calculate center X position for new windows (assume 500px width)
+    const centerX = (screenWidth - 500) / 2;
+
     return [
-      { 
-        id: 'welcome', 
-        component: 'welcome', 
-        x: screenWidth - 550, 
-        y: screenHeight - 580, 
-        zIndex: 1, 
-        minimized: false 
+      {
+        id: 'welcome',
+        component: 'welcome',
+        x: screenWidth - 550,
+        y: screenHeight - 700,
+        zIndex: 1,
+        minimized: false
       },
-      { 
-        id: 'terminal', 
-        component: 'terminal', 
-        x: (screenWidth - 650) / 2, 
-        y: (screenHeight - 600) / 2 - 20, 
-        zIndex: 2, 
-        minimized: false 
+      {
+        id: 'terminal',
+        component: 'terminal',
+        x: (screenWidth - 950) / 2,
+        y: (screenHeight - 600) / 2 - 20,
+        zIndex: 2,
+        minimized: false
       },
-      { id: 'projects', component: 'projects', x: 150, y: 300, zIndex: 3, minimized: true },
-      { id: 'skills', component: 'skills', x: 700, y: 350, zIndex: 4, minimized: true },
-      { id: 'education', component: 'education', x: 200, y: 250, zIndex: 5, minimized: true },
-      { id: 'contact', component: 'contact', x: 400, y: 450, zIndex: 6, minimized: true },
+      { id: 'projects', component: 'projects', x: centerX, y: 0, zIndex: 3, minimized: true },
+      { id: 'skills', component: 'skills', x: centerX, y: 60, zIndex: 4, minimized: true },
+      { id: 'education', component: 'education', x: centerX, y: 120, zIndex: 5, minimized: true },
+      { id: 'contact', component: 'contact', x: centerX, y: 180, zIndex: 6, minimized: true },
     ];
   });
 
@@ -128,14 +131,14 @@ export default function App() {
     <DndProvider backend={HTML5Backend}>
       <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0`}>
         <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden`}>
-          <TopBar 
-            theme={theme} 
+          <TopBar
+            theme={theme}
             onThemeToggle={toggleTheme}
             windows={windows}
             onRestoreWindow={restoreWindow}
             onOpenContact={openContactWindow}
           />
-          
+
           <div className="relative w-full h-[calc(100vh-40px)] mt-[40px] overflow-hidden">
             {/* Desktop Icons */}
             <DesktopIcon
@@ -144,7 +147,7 @@ export default function App() {
               y={desktopIconPosition.y}
               onMove={moveDesktopIcon}
             />
-            
+
             {windows.filter(w => !w.minimized).map(window => (
               <Window
                 key={window.id}
@@ -165,7 +168,7 @@ export default function App() {
             ))}
           </div>
 
-          <Dock 
+          <Dock
             theme={theme}
             windows={windows}
             onToggleWindow={toggleWindow}
