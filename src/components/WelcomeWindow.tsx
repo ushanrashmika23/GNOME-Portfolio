@@ -10,7 +10,7 @@ export default function WelcomeWindow({ theme }: WelcomeWindowProps) {
     <div className="w-full max-w-[500px] sm:w-[500px] p-4 sm:p-8">
       <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full ${theme === 'dark' ? 'bg-[#3584e4]' : 'bg-[#3584e4]'
-          } flex items-center justify-center flex-shrink-0`}>
+          } flex items-center justify-center shrink-0`}>
           {/* <User className="w-10 h-10 sm:w-12 sm:h-12 text-white" /> */}
           <img src={me} alt="Ushan Rashmika" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover" />
         </div>

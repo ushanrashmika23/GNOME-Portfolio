@@ -19,28 +19,37 @@ export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [desktopIconPosition, setDesktopIconPosition] = useState({ x: 50, y: 100 });
   const [isBooting, setIsBooting] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(true);
   const [windows, setWindows] = useState(() => {
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+    const isDesktop = screenWidth >= 768; // md breakpoint
 
     // Calculate center X position for new windows (assume 500px width)
     const centerX = (screenWidth - 500) / 2;
+    
+    // Calculate bottom right position for welcome window (assume 550px width, 500px height)
+    const welcomeX = screenWidth - 550 - 50; // 50px padding from right
+    const welcomeY = screenHeight - 500 - 200; // 200px padding from bottom (including topbar and dock)
+
+    // Terminal centered on desktop, top-left on mobile
+    const terminalX = isDesktop ? (screenWidth - 1000) / 2 : 10;
+    const terminalY = isDesktop ? (screenHeight - 700) / 2 - 20 : 10;
 
     return [
       {
         id: 'welcome',
         component: 'welcome',
-        x: screenWidth - 550,
-        y: screenHeight - 700,
+        x: welcomeX,
+        y: welcomeY,
         zIndex: 1,
         minimized: false
       },
       {
         id: 'terminal',
         component: 'terminal',
-        x: (screenWidth - 950) / 2,
-        y: (screenHeight - 600) / 2 - 20,
+        x: terminalX,
+        y: terminalY,
         zIndex: 2,
         minimized: false
       },
@@ -163,59 +172,60 @@ export default function App() {
     <>
       {isBooting && <BootLoader onComplete={handleBootComplete} theme={theme} />}
       <DndProvider backend={dndBackend} options={backendOptions}>
-        <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0 transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-        <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden transition-all duration-700 ${isLoaded ? 'scale-100' : 'scale-105 blur-sm'}`}>
-          <TopBar
-            theme={theme}
-            onThemeToggle={toggleTheme}
-            windows={windows}
-            onRestoreWindow={restoreWindow}
-            onOpenContact={openContactWindow}
-            onCloseAllWindows={closeAllWindows}
-            isLoaded={isLoaded}
-          />
-
-          <div className={`relative w-full h-[calc(100vh-40px)] mt-[40px] overflow-hidden transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            {/* Desktop Icons */}
-            <DesktopIcon
+        <div className={`${theme} h-full w-full overflow-hidden fixed inset-0 transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden transition-all duration-700 ${isLoaded ? 'scale-100' : 'scale-105 blur-sm'}`}>
+            <TopBar
               theme={theme}
-              x={desktopIconPosition.x}
-              y={desktopIconPosition.y}
-              onMove={moveDesktopIcon}
+              onThemeToggle={toggleTheme}
+              windows={windows}
+              onRestoreWindow={restoreWindow}
+              onOpenContact={openContactWindow}
+              onCloseAllWindows={closeAllWindows}
               isLoaded={isLoaded}
             />
 
-            {windows.filter(w => !w.minimized).map((window, index) => (
-              <Window
-                key={window.id}
-                id={window.id}
-                title={getWindowTitle(window.component)}
-                component={window.component}
-                initialX={window.x}
-                initialY={window.y}
-                zIndex={window.zIndex}
+            <div className={`relative w-full h-[calc(100vh-40px)] mt-[40px] overflow-hidden transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              {/* Desktop Icons */}
+              <DesktopIcon
                 theme={theme}
-                onMove={moveWindow}
-                onFocus={focusWindow}
-                onClose={closeWindow}
-                onMinimize={minimizeWindow}
-                animationDelay={index * 150 + 400}
+                x={desktopIconPosition.x}
+                y={desktopIconPosition.y}
+                onMove={moveDesktopIcon}
                 isLoaded={isLoaded}
-              >
-                {renderWindowContent(window.component)}
-              </Window>
-            ))}
-          </div>
+              />
 
-          <Dock
-            theme={theme}
-            windows={windows}
-            onToggleWindow={toggleWindow}
-            isLoaded={isLoaded}
-          />
+              {windows.filter(w => !w.minimized).map((window, index) => (
+                <Window
+                  key={window.id}
+                  id={window.id}
+                  title={getWindowTitle(window.component)}
+                  component={window.component}
+                  initialX={window.x}
+                  initialY={window.y}
+                  zIndex={window.zIndex}
+                  theme={theme}
+                  onMove={moveWindow}
+                  onFocus={focusWindow}
+                  onClose={closeWindow}
+                  onMinimize={minimizeWindow}
+                  animationDelay={index * 150 + 400}
+                  isLoaded={isLoaded}
+                >
+                  {renderWindowContent(window.component)}
+                </Window>
+              ))}
+            </div>
+
+            <Dock
+              theme={theme}
+              windows={windows}
+              onToggleWindow={toggleWindow}
+              isLoaded={isLoaded}
+              
+            />
+          </div>
         </div>
-      </div>
-    </DndProvider>
+      </DndProvider>
     </>
   );
 }
