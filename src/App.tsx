@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { isTouchDevice } from './components/ui/utils';
 import TopBar from './components/TopBar';
 import Dock from './components/Dock';
 import Window from './components/Window';
@@ -45,6 +47,14 @@ export default function App() {
       { id: 'contact', component: 'contact', x: centerX, y: 180, zIndex: 6, minimized: true },
     ];
   });
+
+  // Determine which backend to use based on device capabilities
+  const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
+  const backendOptions = isTouchDevice() ? {
+    enableMouseEvents: true, // Allow mouse events on touch devices too
+    enableHoverOutsideTarget: false,
+    enableKeyboardEvents: false,
+  } : {};
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -128,7 +138,7 @@ export default function App() {
   };
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={dndBackend} options={backendOptions}>
       <div className={`${theme} h-screen w-full overflow-hidden fixed inset-0`}>
         <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden`}>
           <TopBar

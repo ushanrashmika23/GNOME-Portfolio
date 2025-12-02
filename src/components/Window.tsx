@@ -109,6 +109,25 @@ export default function Window({
     document.body.style.userSelect = 'none';
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.window-controls')) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const touch = e.touches[0];
+    setIsDragging(true);
+    onFocus(id);
+
+    dragStateRef.current = {
+      isDragging: true,
+      startX: touch.clientX - positionRef.current.x,
+      startY: touch.clientY - positionRef.current.y,
+    };
+
+    document.body.style.userSelect = 'none';
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStateRef.current.isDragging) return;
@@ -117,6 +136,28 @@ export default function Window({
 
       const newX = e.clientX - dragStateRef.current.startX;
       const newY = e.clientY - dragStateRef.current.startY;
+
+      positionRef.current = { x: newX, y: newY };
+
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+
+      rafRef.current = requestAnimationFrame(() => {
+        if (windowRef.current) {
+          windowRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+        }
+      });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!dragStateRef.current.isDragging) return;
+
+      e.preventDefault();
+
+      const touch = e.touches[0];
+      const newX = touch.clientX - dragStateRef.current.startX;
+      const newY = touch.clientY - dragStateRef.current.startY;
 
       positionRef.current = { x: newX, y: newY };
 
@@ -146,12 +187,32 @@ export default function Window({
       }
     };
 
+    const handleTouchEnd = () => {
+      if (dragStateRef.current.isDragging) {
+        dragStateRef.current.isDragging = false;
+        setIsDragging(false);
+        document.body.style.userSelect = '';
+
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+        }
+
+        onMove(id, positionRef.current.x, positionRef.current.y);
+      }
+    };
+
     document.addEventListener('mousemove', handleMouseMove, { passive: false });
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('touchcancel', handleTouchEnd);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
@@ -225,6 +286,7 @@ export default function Window({
           } border-b ${theme === 'dark' ? 'border-[#3d3d3d]' : 'border-gray-200'
           } flex items-center justify-between px-3 sm:px-4 cursor-grab active:cursor-grabbing select-none`}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
         <div className="flex items-center gap-1.5 sm:gap-2 window-controls">
           <button

@@ -26,6 +26,21 @@ export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only open link if it's a quick tap without dragging
+    const touch = e.touches[0];
+    const clickDuration = Date.now() - dragStateRef.current.clickTime;
+    
+    if (!dragStateRef.current.isDragging && clickDuration < 200) {
+      // Allow for quick tap to open link
+      setTimeout(() => {
+        if (!dragStateRef.current.isDragging) {
+          window.open('https://developer-journal.vercel.app/', '_blank');
+        }
+      }, 150);
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -44,6 +59,24 @@ export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
     document.body.style.userSelect = 'none';
   };
 
+  const handleTouchStartDrag = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const touch = e.touches[0];
+    setIsSelected(true);
+    setIsDragging(true);
+    
+    dragStateRef.current = {
+      isDragging: true,
+      startX: touch.clientX - position.x,
+      startY: touch.clientY - position.y,
+      clickTime: Date.now()
+    };
+
+    document.body.style.userSelect = 'none';
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStateRef.current.isDragging) return;
@@ -52,6 +85,31 @@ export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
       
       const newX = e.clientX - dragStateRef.current.startX;
       const newY = e.clientY - dragStateRef.current.startY;
+      
+      const constrainedX = Math.max(0, Math.min(window.innerWidth - 100, newX));
+      const constrainedY = Math.max(40, Math.min(window.innerHeight - 120, newY));
+      
+      setPosition({ x: constrainedX, y: constrainedY });
+      
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      
+      rafRef.current = requestAnimationFrame(() => {
+        if (iconRef.current) {
+          iconRef.current.style.transform = `translate(${constrainedX}px, ${constrainedY}px)`;
+        }
+      });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!dragStateRef.current.isDragging) return;
+      
+      e.preventDefault();
+      
+      const touch = e.touches[0];
+      const newX = touch.clientX - dragStateRef.current.startX;
+      const newY = touch.clientY - dragStateRef.current.startY;
       
       const constrainedX = Math.max(0, Math.min(window.innerWidth - 100, newX));
       const constrainedY = Math.max(40, Math.min(window.innerHeight - 120, newY));
@@ -85,12 +143,33 @@ export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
       }
     };
 
+    const handleTouchEnd = () => {
+      if (dragStateRef.current.isDragging) {
+        setIsDragging(false);
+        onMove?.(position.x, position.y);
+      }
+      
+      dragStateRef.current.isDragging = false;
+      setIsSelected(false);
+      document.body.style.userSelect = '';
+      
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+
     document.addEventListener('mousemove', handleMouseMove, { passive: false });
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
     
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('touchcancel', handleTouchEnd);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
@@ -114,6 +193,7 @@ export default function DesktopIcon({ theme, x, y, onMove }: DesktopIconProps) {
         setIsSelected(false);
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStartDrag}
     >
       <div className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
         isDragging ? 'duration-0' : 'duration-200'
