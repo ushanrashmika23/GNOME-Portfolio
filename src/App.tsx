@@ -3,6 +3,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { isTouchDevice } from './components/ui/utils';
+import { buildApiUrl, API_ENDPOINTS } from './config/api';
 import TopBar from './components/TopBar';
 import Dock from './components/Dock';
 import Window from './components/Window';
@@ -20,6 +21,286 @@ export default function App() {
   const [desktopIconPosition, setDesktopIconPosition] = useState({ x: 50, y: 100 });
   const [isBooting, setIsBooting] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [visitStartTime] = useState(() => Date.now());
+  const [pageViews, setPageViews] = useState<Array<{
+    url: string;
+    title: string;
+    timestamp: string;
+    duration: number;
+  }>>([]);
+
+  // User tracking effect
+  useEffect(() => {
+    const trackVisitor = async () => {
+      try {
+        const userAgent = navigator.userAgent;
+        const language = navigator.language || 'en-US';
+        const screenRes = `${screen.width}x${screen.height}`;
+        
+        // Get comprehensive device/browser info
+        const getDetailedBrowser = () => {
+          const ua = userAgent.toLowerCase();
+          
+          // Chrome and Chrome-based browsers
+          if (ua.includes('edg/')) {
+            const version = userAgent.match(/edg\/(\d+\.\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Microsoft Edge', version };
+          }
+          if (ua.includes('opr/') || ua.includes('opera/')) {
+            const version = userAgent.match(/(?:opr\/|opera\/)(\d+\.\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Opera', version };
+          }
+          if (ua.includes('brave/')) {
+            const version = userAgent.match(/brave\/(\d+\.\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Brave', version };
+          }
+          if (ua.includes('chrome/')) {
+            const version = userAgent.match(/chrome\/(\d+\.\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Google Chrome', version };
+          }
+          
+          // Firefox
+          if (ua.includes('firefox/')) {
+            const version = userAgent.match(/firefox\/(\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Mozilla Firefox', version };
+          }
+          
+          // Safari
+          if (ua.includes('safari/') && !ua.includes('chrome/')) {
+            const version = userAgent.match(/version\/(\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Safari', version };
+          }
+          
+          // Internet Explorer
+          if (ua.includes('trident/') || ua.includes('msie')) {
+            const version = userAgent.match(/(?:msie |rv:)(\d+\.\d+)/i)?.[1] || 'Unknown';
+            return { name: 'Internet Explorer', version };
+          }
+          
+          return { name: 'Unknown Browser', version: 'Unknown' };
+        };
+        
+        // Get detailed OS info
+        const getDetailedOS = () => {
+          const ua = userAgent;
+          
+          // Windows
+          if (ua.includes('Windows NT 10.0')) {
+            if (ua.includes('Windows NT 10.0; Win64; x64')) return { name: 'Windows', version: '10/11 (64-bit)' };
+            return { name: 'Windows', version: '10/11' };
+          }
+          if (ua.includes('Windows NT 6.3')) return { name: 'Windows', version: '8.1' };
+          if (ua.includes('Windows NT 6.2')) return { name: 'Windows', version: '8' };
+          if (ua.includes('Windows NT 6.1')) return { name: 'Windows', version: '7' };
+          if (ua.includes('Windows NT')) return { name: 'Windows', version: 'Legacy' };
+          
+          // macOS
+          if (ua.includes('Mac OS X')) {
+            const version = ua.match(/Mac OS X (\d+[._]\d+[._]?\d*)/)?.[1]?.replace(/_/g, '.') || 'Unknown';
+            return { name: 'macOS', version };
+          }
+          
+          // Linux
+          if (ua.includes('Linux')) {
+            if (ua.includes('Ubuntu')) return { name: 'Ubuntu Linux', version: 'Unknown' };
+            if (ua.includes('Fedora')) return { name: 'Fedora Linux', version: 'Unknown' };
+            if (ua.includes('SUSE')) return { name: 'SUSE Linux', version: 'Unknown' };
+            return { name: 'Linux', version: 'Unknown Distribution' };
+          }
+          
+          // Mobile OS
+          if (ua.includes('iPhone OS') || ua.includes('iOS')) {
+            const version = ua.match(/(?:iPhone )?OS (\d+[._]\d+[._]?\d*)/)?.[1]?.replace(/_/g, '.') || 'Unknown';
+            return { name: 'iOS', version };
+          }
+          if (ua.includes('Android')) {
+            const version = ua.match(/Android (\d+\.?\d*\.?\d*)/)?.[1] || 'Unknown';
+            return { name: 'Android', version };
+          }
+          
+          return { name: 'Unknown OS', version: 'Unknown' };
+        };
+
+        // Get detailed device info
+        const getDetailedDevice = () => {
+          const ua = userAgent;
+          const width = screen.width;
+          const height = screen.height;
+          
+          // Mobile devices
+          if (/iPhone/i.test(ua)) {
+            if (width >= 414) return { type: 'mobile', model: 'iPhone Pro/Plus', screenResolution: `${width}x${height}` };
+            return { type: 'mobile', model: 'iPhone', screenResolution: `${width}x${height}` };
+          }
+          if (/iPad/i.test(ua)) {
+            return { type: 'tablet', model: 'iPad', screenResolution: `${width}x${height}` };
+          }
+          if (/Android/i.test(ua)) {
+            if (width >= 768) return { type: 'tablet', model: 'Android Tablet', screenResolution: `${width}x${height}` };
+            return { type: 'mobile', model: 'Android Phone', screenResolution: `${width}x${height}` };
+          }
+          
+          // Desktop - detect by resolution
+          if (width >= 1920) return { type: 'desktop', model: 'High-res Desktop', screenResolution: `${width}x${height}` };
+          if (width >= 1366) return { type: 'desktop', model: 'Standard Desktop', screenResolution: `${width}x${height}` };
+          if (width >= 1024) return { type: 'laptop', model: 'Laptop', screenResolution: `${width}x${height}` };
+          
+          return { type: 'unknown', model: 'Unknown Device', screenResolution: `${width}x${height}` };
+        };
+
+        const browser = getDetailedBrowser();
+        const os = getDetailedOS();
+        const device = getDetailedDevice();
+        
+        // Get more accurate IP and location data with fallbacks
+        let locationData = {
+          country: 'Unknown',
+          city: 'Unknown',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          coordinates: { lat: 0, lng: 0 }
+        };
+        let ipAddress = 'Unknown';
+
+        // Try multiple IP services for better accuracy
+        const ipServices = [
+          'https://ipapi.co/json/',
+          'https://api.ipify.org?format=json',
+          'https://httpbin.org/ip'
+        ];
+
+        for (const service of ipServices) {
+          try {
+            const response = await fetch(service);
+            const data = await response.json();
+            
+            if (service.includes('ipapi.co')) {
+              locationData = {
+                country: data.country_name || 'Unknown',
+                city: data.city || 'Unknown',
+                timezone: data.timezone || locationData.timezone,
+                coordinates: {
+                  lat: parseFloat(data.latitude) || 0,
+                  lng: parseFloat(data.longitude) || 0
+                }
+              };
+              ipAddress = data.ip || 'Unknown';
+              break; // Use ipapi.co if available (most detailed)
+            } else if (service.includes('ipify')) {
+              ipAddress = data.ip || 'Unknown';
+              // Continue to try getting location from other services
+            } else if (service.includes('httpbin')) {
+              ipAddress = data.origin?.split(',')[0] || 'Unknown';
+            }
+          } catch (error) {
+            continue; // Try next service
+          }
+        }
+
+        // Get additional browser capabilities
+        const getCapabilities = () => {
+          return {
+            cookiesEnabled: navigator.cookieEnabled,
+            javaEnabled: navigator.javaEnabled ? navigator.javaEnabled() : false,
+            language: navigator.language,
+            languages: navigator.languages || [navigator.language],
+            platform: navigator.platform,
+            doNotTrack: navigator.doNotTrack === '1',
+            onlineStatus: navigator.onLine,
+            colorDepth: screen.colorDepth,
+            pixelDepth: screen.pixelDepth,
+            availableScreenSize: `${screen.availWidth}x${screen.availHeight}`,
+            timezoneOffset: new Date().getTimezoneOffset()
+          };
+        };
+
+        const capabilities = getCapabilities();
+
+        const currentUrl = window.location.href;
+        const currentTitle = document.title;
+        const referrer = document.referrer || 'direct';
+        
+        const trackingData = {
+          sessionId,
+          ipAddress,
+          userAgent,
+          location: locationData,
+          device,
+          browser: {
+            name: browser.name,
+            version: browser.version,
+            language: capabilities.language,
+            capabilities
+          },
+          os,
+          pageViews: [{
+            url: currentUrl,
+            title: currentTitle,
+            timestamp: new Date().toISOString(),
+            duration: 0
+          }],
+          landingPage: currentUrl,
+          currentPage: currentUrl,
+          referrer,
+          isNewVisitor: !localStorage.getItem('portfolio_visitor'),
+          visitCount: parseInt(localStorage.getItem('portfolio_visit_count') || '0') + 1,
+          sessionData: {
+            startTime: new Date().toISOString(),
+            timeZone: locationData.timezone,
+            screenInfo: {
+              total: device.screenResolution,
+              available: capabilities.availableScreenSize,
+              colorDepth: capabilities.colorDepth,
+              pixelDepth: capabilities.pixelDepth
+            }
+          }
+        };
+
+        // Update localStorage
+        localStorage.setItem('portfolio_visitor', 'true');
+        localStorage.setItem('portfolio_visit_count', trackingData.visitCount.toString());
+
+        // Send tracking data
+        await fetch(buildApiUrl(API_ENDPOINTS.VISITORS), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(trackingData),
+        });
+        
+        // Set initial page view
+        setPageViews([{
+          url: currentUrl,
+          title: currentTitle,
+          timestamp: new Date().toISOString(),
+          duration: 0
+        }]);
+
+      } catch (error) {
+        // Silent error handling - no console logs
+      }
+    };
+
+    // Track visitor on component mount
+    trackVisitor();
+
+    // Track page duration on beforeunload
+    const handleBeforeUnload = () => {
+      const duration = Math.round((Date.now() - visitStartTime) / 1000);
+      navigator.sendBeacon(buildApiUrl(API_ENDPOINTS.VISITORS_UPDATE), JSON.stringify({
+        sessionId,
+        duration,
+        timestamp: new Date().toISOString()
+      }));
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [sessionId, visitStartTime]);
   const [windows, setWindows] = useState(() => {
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
@@ -126,6 +407,21 @@ export default function App() {
     }
   }, [isBooting]);
 
+  // Terminal typing animation trigger - after all other animations complete
+  const [startTerminalTyping, setStartTerminalTyping] = useState(false);
+  
+  useEffect(() => {
+    if (isLoaded) {
+      // Start terminal typing after all landing animations complete
+      // Dock animation has 500ms delay, so we wait a bit longer
+      const timer = setTimeout(() => {
+        setStartTerminalTyping(true);
+      }, 1200); // Wait for all landing animations to finish
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded]);
+
   const handleBootComplete = () => {
     setIsBooting(false);
   };
@@ -137,7 +433,7 @@ export default function App() {
       case 'projects':
         return <ProjectsWindow theme={theme} />;
       case 'terminal':
-        return <TerminalWindow theme={theme} />;
+        return <TerminalWindow theme={theme} startTyping={startTerminalTyping} />;
       case 'skills':
         return <SkillsWindow theme={theme} />;
       case 'education':

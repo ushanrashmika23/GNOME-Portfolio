@@ -1,5 +1,6 @@
 import { Mail, Github, Linkedin, BookOpen, Send, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 interface ContactWindowProps {
   theme: 'dark' | 'light';
@@ -71,7 +72,7 @@ export default function ContactWindow({ theme }: ContactWindowProps) {
 
     try {
       // Send email via API
-      const response = await fetch('https://dev-journal-backend.vercel.app/email/sendPFmsg', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.EMAIL_SEND), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

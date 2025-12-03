@@ -2,13 +2,15 @@ import { useEffect, useState, useRef } from 'react';
 
 interface TerminalWindowProps {
   theme: 'dark' | 'light';
+  startTyping?: boolean;
 }
 
-export default function TerminalWindow({ theme }: TerminalWindowProps) {
+export default function TerminalWindow({ theme, startTyping = false }: TerminalWindowProps) {
   const [displayedLines, setDisplayedLines] = useState<Array<{ type: string; text: string }>>([]);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [showCursor, setShowCursor] = useState(true);
+  const [canStartTyping, setCanStartTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -47,8 +49,19 @@ export default function TerminalWindow({ theme }: TerminalWindowProps) {
     { type: 'command', text: 'ushan@portfolio:~$ _' },
   ];
 
+  // Wait for startTyping to become true before beginning animation
   useEffect(() => {
-    if (currentLineIndex >= terminalLines.length) return;
+    if (startTyping) {
+      const timer = setTimeout(() => {
+        setCanStartTyping(true);
+      }, 500); // Small delay after landing animations complete
+      
+      return () => clearTimeout(timer);
+    }
+  }, [startTyping]);
+
+  useEffect(() => {
+    if (!canStartTyping || currentLineIndex >= terminalLines.length) return;
 
     const currentLine = terminalLines[currentLineIndex];
     
@@ -66,7 +79,7 @@ export default function TerminalWindow({ theme }: TerminalWindowProps) {
       }, 100);
       return () => clearTimeout(timeout);
     }
-  }, [currentLineIndex, currentCharIndex]);
+  }, [canStartTyping, currentLineIndex, currentCharIndex]);
 
   useEffect(() => {
     const cursorInterval = setInterval(() => {
