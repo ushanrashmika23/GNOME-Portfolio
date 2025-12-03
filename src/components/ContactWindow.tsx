@@ -1,12 +1,5 @@
 import { Mail, Github, Linkedin, BookOpen, Send, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import emailjs from '@emailjs/browser';
-
-const EMAIL_CONFIG = {
-  serviceId: 'service_7c53znu',
-  templateId: 'template_mewezdk',
-  publicKey: 'IcM6f9EewQwqVEEPr',
-};
 
 interface ContactWindowProps {
   theme: 'dark' | 'light';
@@ -77,30 +70,28 @@ export default function ContactWindow({ theme }: ContactWindowProps) {
     setSubmitStatus('idle');
 
     try {
-      // Initialize EmailJS
-      emailjs.init(EMAIL_CONFIG.publicKey);
+      // Send email via API
+      const response = await fetch('http://localhost:3000/email/sendPFmsg', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+        }),
+      });
 
-      // Email template parameters
-      const templateParams = {
-        from_name: formData.name,
-        from_email: formData.email,
-        message: formData.message,
-        to_email: 'ushanrashmika23@gmail.com',
-        reply_to: formData.email,
-      };
-
-      // Send email
-      await emailjs.send(
-        EMAIL_CONFIG.serviceId,
-        EMAIL_CONFIG.templateId,
-        templateParams
-      );
-
-      setSubmitStatus('success');
-      setFormData({ name: '', email: '', message: '' });
+      if (response.ok) {
+        setSubmitStatus('success');
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        throw new Error('Failed to send message');
+      }
 
     } catch (error) {
-      console.error('Email sending error:', error);
+      console.error('Error sending message:', error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -227,23 +218,23 @@ export default function ContactWindow({ theme }: ContactWindowProps) {
         </button>
 
         {/* Status Messages */}
-        {submitStatus === 'success' && (
+        {/* {submitStatus === 'success' && (
           <div className={`mt-4 p-3 rounded-lg text-sm font-['JetBrains_Mono'] ${theme === 'dark'
               ? 'bg-green-900/30 border border-green-700 text-green-400'
               : 'bg-green-100 border border-green-300 text-green-700'
             }`}>
             ✅ Message sent successfully! I'll get back to you soon.
           </div>
-        )}
+        )} */}
 
-        {submitStatus === 'error' && (
+        {/* {submitStatus === 'error' && (
           <div className={`mt-4 p-3 rounded-lg text-sm font-['JetBrains_Mono'] ${theme === 'dark'
               ? 'bg-red-900/30 border border-red-700 text-red-400'
               : 'bg-red-100 border border-red-300 text-red-700'
             }`}>
             ❌ Failed to send message. Please check your internet connection or contact me directly at ushanrashmika23@gmail.com
           </div>
-        )}
+        )} */}
       </form>
     </div>
   );

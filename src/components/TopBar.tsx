@@ -99,7 +99,7 @@ export default function TopBar({ theme, onThemeToggle, windows, onRestoreWindow,
       case 'contact':
         return 'Contact';
       case 'education':
-        return 'Education & Experience';
+        return 'Experience';
       default:
         return '';
     }
