@@ -71,7 +71,7 @@ export default function ContactWindow({ theme }: ContactWindowProps) {
 
     try {
       // Send email via API
-      const response = await fetch('http://localhost:3000/email/sendPFmsg', {
+      const response = await fetch('https://dev-journal-backend.vercel.app/email/sendPFmsg', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
