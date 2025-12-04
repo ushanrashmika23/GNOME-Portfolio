@@ -322,7 +322,7 @@ export default function App() {
         id: 'welcome',
         component: 'welcome',
         x: welcomeX,
-        y: welcomeY,
+        y: 10,
         zIndex: 1,
         minimized: false
       },
