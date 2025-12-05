@@ -104,7 +104,7 @@ export default function BootLoader({ onComplete, theme }: BootLoaderProps) {
             className="font-['JetBrains_Mono'] text-xs"
             style={{ color: '#808080' }}
           >
-            Ushan Rashmika's Portfolio Boot Loader v1.0
+            Ushanrashmika23's Portfolio Boot Loader v1.0
           </div>
         </div>
 

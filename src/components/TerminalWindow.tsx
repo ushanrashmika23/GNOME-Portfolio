@@ -16,7 +16,8 @@ export default function TerminalWindow({ theme, startTyping = false }: TerminalW
 
   const terminalLines = [
     { type: 'command', text: '$ whoami' },
-    { type: 'command', text: 'ushan@portfolio:~$ cat welcome.txt' },
+    { type: 'output', text: 'ushanrashmika23' },
+    { type: 'command', text: 'ushanrashmika23@portfolio:~$ cat welcome.txt' },
     { type: 'output', text: '' },
     { type: 'output', text: '╔═══════════════════════════════════════╗' },
     { type: 'output', text: '║    Welcome to Ushan Rashmika\'s Portfolio     ║' },
