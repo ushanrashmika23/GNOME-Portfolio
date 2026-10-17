@@ -1,3 +1,5 @@
+'use client';
+
 import { FileText } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 

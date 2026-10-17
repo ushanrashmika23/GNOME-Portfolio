@@ -1,5 +1,7 @@
+'use client';
+
 import { User, MapPin, Briefcase } from 'lucide-react';
-import me from "./../../img/me.png";
+const me = '/img/me.png';
 
 interface WelcomeWindowProps {
   theme: 'dark' | 'light';

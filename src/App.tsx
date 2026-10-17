@@ -469,7 +469,14 @@ export default function App() {
       {isBooting && <BootLoader onComplete={handleBootComplete} theme={theme} />}
       <DndProvider backend={dndBackend} options={backendOptions}>
         <div className={`${theme} h-full w-full overflow-hidden fixed inset-0 transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-          <div className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden transition-all duration-700 ${isLoaded ? 'scale-100' : 'scale-105 blur-sm'}`}>
+          <div 
+            className={`h-full w-full ${theme === 'dark' ? 'bg-dark-wallpaper' : 'bg-light-wallpaper'} bg-cover bg-center relative overflow-hidden transition-all duration-700 ${isLoaded ? 'scale-100' : 'scale-105 blur-sm'}`}
+            style={{
+              backgroundImage: `url(${theme === 'dark' ? '/img/bg1.jpg' : '/img/bg2.jpg'})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
             <TopBar
               theme={theme}
               onThemeToggle={toggleTheme}

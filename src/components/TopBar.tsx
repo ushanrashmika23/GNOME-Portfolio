@@ -1,6 +1,8 @@
+'use client';
+
 import { Sun, Moon, Mail, Wifi, WifiOff, Battery, BatteryLow, Plug } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import me from './../../img/me.png';
+const me = '/img/me.png';
 interface TopBarProps {
   theme: 'dark' | 'light';
   onThemeToggle: () => void;

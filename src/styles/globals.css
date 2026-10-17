@@ -124,20 +124,15 @@
 
 /* GNOME wallpaper backgrounds */
 .bg-dark-wallpaper {
-  background: #0a0e1a;
-  background-image: 
-    radial-gradient(circle at 20% 30%, rgba(53, 132, 228, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(99, 69, 237, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 40% 70%, rgba(246, 97, 81, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(53, 132, 228, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 10% 90%, rgba(153, 69, 255, 0.1) 0%, transparent 50%);
+  background-color: #0a0e1a;
+  background-image: url('/img/bg1.jpg');
   background-size: cover;
   background-position: center;
 }
 
 .bg-light-wallpaper {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  background-image: url('https://images.unsplash.com/photo-1762503203666-1f188d6f6a0a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2xvcmZ1bCUyMG1vZGVybiUyMGdyYWRpZW50fGVufDF8fHx8MTc2NDU4ODA1MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral');
+  background-color: #ffffff;
+  background-image: url('/img/bg2.jpg');
   background-size: cover;
   background-position: center;
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import { Code2, Database, Boxes, Wrench } from 'lucide-react';
 
 interface SkillsWindowProps {

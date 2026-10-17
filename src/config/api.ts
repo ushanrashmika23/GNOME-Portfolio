@@ -1,11 +1,12 @@
-// API Configuration
-export const API_BASE_URL = 'https://dev-journal-backend.vercel.app';
+// API Configuration - Powered by Cloudflare D1 & R2
+export const API_BASE_URL = '';
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  VISITORS: '/visitors/new',
-  VISITORS_UPDATE: '/visitors/update',
-  EMAIL_SEND: '/email/sendPFmsg'
+  PROJECTS: '/api/projects',
+  VISITORS: '/api/visitors',
+  VISITORS_UPDATE: '/api/visitors/update',
+  EMAIL_SEND: '/api/contact',
 } as const;
 
 // Helper function to build full API URLs

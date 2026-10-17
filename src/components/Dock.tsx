@@ -1,3 +1,5 @@
+'use client';
+
 import { User, Folder, Terminal, Wrench, Mail, GraduationCap } from 'lucide-react';
 
 interface DockProps {

@@ -1,3 +1,5 @@
+'use client';
+
 import { Mail, Github, Linkedin, BookOpen, Send, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { buildApiUrl, API_ENDPOINTS } from '../config/api';

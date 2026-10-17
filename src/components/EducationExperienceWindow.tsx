@@ -1,3 +1,5 @@
+'use client';
+
 import { GraduationCap, Briefcase, Calendar, MapPin } from 'lucide-react';
 import { useState } from 'react';
 

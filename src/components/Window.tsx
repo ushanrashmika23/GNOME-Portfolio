@@ -1,3 +1,5 @@
+'use client';
+
 import { ReactNode, useRef, useState, useEffect } from 'react';
 import { Minus, X, Maximize2, User, Folder, Terminal as TerminalIcon, Wrench, Mail, GraduationCap } from 'lucide-react';
 
