@@ -22,6 +22,8 @@ interface Project {
   /** Gallery images; the first entry is also the card cover. */
   screenshots?: string[];
   firstScreenShot: string;
+  displayOrder?: number;
+  isVisible?: boolean;
 }
 
 interface ApiResponse {
@@ -104,7 +106,15 @@ export default function ProjectsWindow({ theme }: ProjectsWindowProps) {
         const data: ApiResponse = await response.json();
 
         if (data.code === 200 && data.status === 'success') {
-          setProjects(data.data);
+          const visible = (data.data || [])
+            .filter((p) => p.isVisible !== false)
+            .sort((a, b) => {
+              const orderA = typeof a.displayOrder === 'number' && a.displayOrder > 0 ? a.displayOrder : 999999;
+              const orderB = typeof b.displayOrder === 'number' && b.displayOrder > 0 ? b.displayOrder : 999999;
+              if (orderA !== orderB) return orderA - orderB;
+              return 0;
+            });
+          setProjects(visible);
         } else {
           setError('Failed to fetch projects');
         }

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS projects (
   tech_stack TEXT, -- JSON string array
   first_screenshot TEXT, -- cover image, kept in sync with screenshots[0]
   screenshots TEXT, -- JSON string array of gallery images
+  display_order INTEGER DEFAULT 0,
+  is_visible INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -112,7 +114,13 @@ VALUES
   );
 
 -- ===================================================
--- Migration: multiple screenshots per project
+-- Migration: display_order and is_visible columns
+-- ===================================================
+-- For databases created before display_order and is_visible existed:
+--
+--   ALTER TABLE projects ADD COLUMN display_order INTEGER DEFAULT 0;
+--   ALTER TABLE projects ADD COLUMN is_visible INTEGER DEFAULT 1;
+--
 -- ===================================================
 -- Databases created before the `screenshots` column existed need this run once.
 -- SQLite has no "ADD COLUMN IF NOT EXISTS", so running it twice reports

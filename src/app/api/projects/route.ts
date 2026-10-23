@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProjects, saveProject, deleteProject } from '@/lib/cloudflare-d1';
+import {
+  getProjects,
+  saveProject,
+  deleteProject,
+  reorderProjects,
+  updateProjectVisibility,
+} from '@/lib/cloudflare-d1';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const includeAll = searchParams.get('all') === 'true';
     const projects = await getProjects();
+
+    const data = includeAll ? projects : projects.filter((p) => p.isVisible !== false);
+
     return NextResponse.json({
       code: 200,
       status: 'success',
-      data: projects,
+      data,
     });
   } catch (error: any) {
     console.error('Error fetching projects:', error);
@@ -21,6 +32,27 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Reorder projects batch action
+    if (body.action === 'reorder' && Array.isArray(body.orders)) {
+      await reorderProjects(body.orders);
+      return NextResponse.json({
+        code: 200,
+        status: 'success',
+        message: 'Projects reordered successfully',
+      });
+    }
+
+    // Toggle visibility action
+    if (body.action === 'toggle-visibility' && body.id !== undefined) {
+      await updateProjectVisibility(body.id, Boolean(body.isVisible));
+      return NextResponse.json({
+        code: 200,
+        status: 'success',
+        message: 'Project visibility updated',
+      });
+    }
+
     const saved = await saveProject(body);
     return NextResponse.json({
       code: 200,
@@ -34,6 +66,14 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PUT(req: NextRequest) {
+  return POST(req);
+}
+
+export async function PATCH(req: NextRequest) {
+  return POST(req);
 }
 
 export async function DELETE(req: NextRequest) {

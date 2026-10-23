@@ -15,6 +15,8 @@ export interface ProjectRecord {
   screenshots: string[];
   /** Kept in sync with screenshots[0] so existing consumers (admin list, cards) keep working. */
   firstScreenShot: string;
+  displayOrder?: number;
+  isVisible?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -62,6 +64,8 @@ export const DEFAULT_PROJECTS: ProjectRecord[] = [
       'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80',
     ],
     firstScreenShot: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+    displayOrder: 1,
+    isVisible: true,
   },
   {
     id: 'proj_2',
@@ -79,6 +83,8 @@ export const DEFAULT_PROJECTS: ProjectRecord[] = [
       'https://images.unsplash.com/photo-1556742049-0a67e557224e?w=600&auto=format&fit=crop&q=80',
     ],
     firstScreenShot: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=600&auto=format&fit=crop&q=80',
+    displayOrder: 2,
+    isVisible: true,
   },
   {
     id: 'proj_3',
@@ -96,6 +102,8 @@ export const DEFAULT_PROJECTS: ProjectRecord[] = [
       'https://images.unsplash.com/photo-1556742049-0a67e557224e?w=600&auto=format&fit=crop&q=80',
     ],
     firstScreenShot: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop&q=80',
+    displayOrder: 3,
+    isVisible: true,
   },
   {
     id: 'proj_4',
@@ -113,6 +121,8 @@ export const DEFAULT_PROJECTS: ProjectRecord[] = [
       'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=600&auto=format&fit=crop&q=80',
     ],
     firstScreenShot: 'https://images.unsplash.com/photo-1556742049-0a67e557224e?w=600&auto=format&fit=crop&q=80',
+    displayOrder: 4,
+    isVisible: true,
   }
 ];
 
@@ -249,6 +259,27 @@ function executeLocalFallback(sql: string, params: any[] = []): any[] {
   return [];
 }
 
+// Auto-migration to ensure columns exist in D1
+let columnsEnsured = false;
+export async function ensureProjectColumns(): Promise<void> {
+  if (columnsEnsured) return;
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+  if (!accountId || !databaseId || !apiToken) return;
+
+  columnsEnsured = true;
+  try {
+    await queryD1('ALTER TABLE projects ADD COLUMN display_order INTEGER DEFAULT 0');
+  } catch {}
+  try {
+    await queryD1('ALTER TABLE projects ADD COLUMN is_visible INTEGER DEFAULT 1');
+  } catch {}
+  try {
+    await queryD1('ALTER TABLE projects ADD COLUMN screenshots TEXT');
+  } catch {}
+}
+
 // High-level Project queries
 export async function getProjects(): Promise<ProjectRecord[]> {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -256,10 +287,11 @@ export async function getProjects(): Promise<ProjectRecord[]> {
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
   if (accountId && databaseId && apiToken) {
+    ensureProjectColumns().catch(() => {});
     try {
-      const results = await queryD1('SELECT * FROM projects ORDER BY created_at DESC');
+      const results = await queryD1('SELECT * FROM projects');
       if (results && results.length > 0) {
-        return results.map((row) => ({
+        const mapped = results.map((row) => ({
           id: row.id,
           _id: row.id,
           title: row.title,
@@ -272,28 +304,52 @@ export async function getProjects(): Promise<ProjectRecord[]> {
           techStack: typeof row.tech_stack === 'string' ? safeJsonParse(row.tech_stack, []) : (row.tech_stack || []),
           screenshots: normalizeScreenshots(row.screenshots, row.first_screenshot || ''),
           firstScreenShot: row.first_screenshot || '',
+          displayOrder: row.display_order !== undefined && row.display_order !== null ? Number(row.display_order) : 0,
+          isVisible: row.is_visible !== undefined && row.is_visible !== null ? (Number(row.is_visible) === 1 || row.is_visible === true) : true,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
-        })) as any[];
+        })) as ProjectRecord[];
+
+        mapped.sort((a, b) => {
+          const orderA = typeof a.displayOrder === 'number' && a.displayOrder > 0 ? a.displayOrder : 999999;
+          const orderB = typeof b.displayOrder === 'number' && b.displayOrder > 0 ? b.displayOrder : 999999;
+          if (orderA !== orderB) return orderA - orderB;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+
+        return mapped;
       }
     } catch (e) {
       console.error('Failed to get projects from D1:', e);
     }
   }
 
-  // Normalise the local fallback the same way as the D1 rows so both paths
-  // return an identical shape (legacy entries only carry `firstScreenShot`).
+  // Normalise the local fallback the same way as the D1 rows
   const store = readLocalStore();
-  return (store.projects || []).map((project: any) => ({
+  const list = (store.projects || []).map((project: any, idx: number) => ({
     ...project,
     screenshots: normalizeScreenshots(project.screenshots, project.firstScreenShot || ''),
+    displayOrder: typeof project.displayOrder === 'number' && project.displayOrder > 0 ? project.displayOrder : idx + 1,
+    isVisible: project.isVisible !== false,
   }));
+
+  list.sort((a: any, b: any) => {
+    const orderA = typeof a.displayOrder === 'number' && a.displayOrder > 0 ? a.displayOrder : 999999;
+    const orderB = typeof b.displayOrder === 'number' && b.displayOrder > 0 ? b.displayOrder : 999999;
+    if (orderA !== orderB) return orderA - orderB;
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
+
+  return list;
 }
 
 export async function saveProject(project: Partial<ProjectRecord>): Promise<ProjectRecord> {
   const id = project.id || `proj_${Date.now()}`;
   const now = new Date().toISOString();
   const screenshots = normalizeScreenshots(project.screenshots, project.firstScreenShot);
+  const displayOrder = typeof project.displayOrder === 'number' ? project.displayOrder : 0;
+  const isVisible = project.isVisible !== false;
+
   const newProject: ProjectRecord = {
     id,
     title: project.title || 'Untitled Project',
@@ -306,7 +362,9 @@ export async function saveProject(project: Partial<ProjectRecord>): Promise<Proj
     techStack: project.techStack || [],
     screenshots,
     firstScreenShot: screenshots[0] || '',
-    createdAt: now,
+    displayOrder,
+    isVisible,
+    createdAt: project.createdAt || now,
     updatedAt: now,
   };
 
@@ -315,6 +373,8 @@ export async function saveProject(project: Partial<ProjectRecord>): Promise<Proj
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
   if (accountId && databaseId && apiToken) {
+    await ensureProjectColumns().catch(() => {});
+
     const values = [
       newProject.id,
       newProject.title,
@@ -330,8 +390,8 @@ export async function saveProject(project: Partial<ProjectRecord>): Promise<Proj
 
     try {
       await queryD1(
-        `INSERT INTO projects (id, title, description, progress, status, start_date, github_url, demo_url, tech_stack, first_screenshot, screenshots, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO projects (id, title, description, progress, status, start_date, github_url, demo_url, tech_stack, first_screenshot, screenshots, display_order, is_visible, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            title=excluded.title,
            description=excluded.description,
@@ -343,19 +403,18 @@ export async function saveProject(project: Partial<ProjectRecord>): Promise<Proj
            tech_stack=excluded.tech_stack,
            first_screenshot=excluded.first_screenshot,
            screenshots=excluded.screenshots,
+           display_order=excluded.display_order,
+           is_visible=excluded.is_visible,
            updated_at=excluded.updated_at`,
-        [...values, JSON.stringify(screenshots), now],
+        [...values, JSON.stringify(screenshots), displayOrder, isVisible ? 1 : 0, now],
         { throwOnApiError: true }
       );
     } catch (e) {
-      // Databases created before the `screenshots` column existed reject the
-      // statement above. Retry with the legacy column set so saving a project
-      // keeps working until the migration in schema.sql has been applied.
-      console.warn('D1 rejected project save with screenshots column, retrying legacy schema:', e);
+      console.warn('D1 rejected project save with all columns, falling back to older schemas:', e);
       try {
         await queryD1(
-          `INSERT INTO projects (id, title, description, progress, status, start_date, github_url, demo_url, tech_stack, first_screenshot, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO projects (id, title, description, progress, status, start_date, github_url, demo_url, tech_stack, first_screenshot, screenshots, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET
              title=excluded.title,
              description=excluded.description,
@@ -366,12 +425,33 @@ export async function saveProject(project: Partial<ProjectRecord>): Promise<Proj
              demo_url=excluded.demo_url,
              tech_stack=excluded.tech_stack,
              first_screenshot=excluded.first_screenshot,
+             screenshots=excluded.screenshots,
              updated_at=excluded.updated_at`,
-          [...values, now],
+          [...values, JSON.stringify(screenshots), now],
           { throwOnApiError: true }
         );
-      } catch (legacyError) {
-        console.error('Failed to save project to D1:', legacyError);
+      } catch (legacyScreenshotsError) {
+        try {
+          await queryD1(
+            `INSERT INTO projects (id, title, description, progress, status, start_date, github_url, demo_url, tech_stack, first_screenshot, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               title=excluded.title,
+               description=excluded.description,
+               progress=excluded.progress,
+               status=excluded.status,
+               start_date=excluded.start_date,
+               github_url=excluded.github_url,
+               demo_url=excluded.demo_url,
+               tech_stack=excluded.tech_stack,
+               first_screenshot=excluded.first_screenshot,
+               updated_at=excluded.updated_at`,
+            [...values, now],
+            { throwOnApiError: true }
+          );
+        } catch (legacyError) {
+          console.error('Failed to save project to D1:', legacyError);
+        }
       }
     }
   }
@@ -387,6 +467,65 @@ export async function saveProject(project: Partial<ProjectRecord>): Promise<Proj
   writeLocalStore(store);
 
   return newProject;
+}
+
+export async function reorderProjects(orders: { id: string; displayOrder: number }[]): Promise<boolean> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (accountId && databaseId && apiToken) {
+    await ensureProjectColumns().catch(() => {});
+    for (const item of orders) {
+      try {
+        await queryD1('UPDATE projects SET display_order = ?, updated_at = ? WHERE id = ?', [
+          item.displayOrder,
+          new Date().toISOString(),
+          item.id,
+        ]);
+      } catch (e) {
+        console.warn('Failed to update display_order in D1 for project', item.id, e);
+      }
+    }
+  }
+
+  const store = readLocalStore();
+  orders.forEach(({ id, displayOrder }) => {
+    const proj = store.projects.find((p: any) => p.id === id || p._id === id);
+    if (proj) {
+      proj.displayOrder = displayOrder;
+    }
+  });
+  store.projects.sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  writeLocalStore(store);
+  return true;
+}
+
+export async function updateProjectVisibility(id: string, isVisible: boolean): Promise<boolean> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (accountId && databaseId && apiToken) {
+    await ensureProjectColumns().catch(() => {});
+    try {
+      await queryD1('UPDATE projects SET is_visible = ?, updated_at = ? WHERE id = ?', [
+        isVisible ? 1 : 0,
+        new Date().toISOString(),
+        id,
+      ]);
+    } catch (e) {
+      console.warn('Failed to update is_visible in D1 for project', id, e);
+    }
+  }
+
+  const store = readLocalStore();
+  const proj = store.projects.find((p: any) => p.id === id || p._id === id);
+  if (proj) {
+    proj.isVisible = isVisible;
+  }
+  writeLocalStore(store);
+  return true;
 }
 
 export async function deleteProject(id: string): Promise<boolean> {

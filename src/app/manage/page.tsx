@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Shield, Key, Send, CheckCircle2, AlertCircle, LogOut,
-  FolderPlus, Trash2, Edit3, ExternalLink, Github, Eye,
+  FolderPlus, Trash2, Edit3, ExternalLink, Github, Eye, EyeOff,
   Database, Cloud, Users, MessageSquare, ArrowLeft, RefreshCw, Upload,
   Lock, Copy, Check, Search, Filter, Plus, Globe, Laptop,
-  Clock, Mail, Menu, X, HardDrive, CheckCircle
+  Clock, Mail, Menu, X, HardDrive, CheckCircle, ArrowUp, ArrowDown
 } from 'lucide-react';
 import Link from 'next/link';
 import '@/styles/manage.css';
@@ -25,6 +25,8 @@ interface Project {
   /** Gallery images; the first entry is used as the card cover. */
   screenshots?: string[];
   firstScreenShot: string;
+  displayOrder?: number;
+  isVisible?: boolean;
 }
 
 /** Gallery images for a project, falling back to the legacy single cover field. */
@@ -103,6 +105,8 @@ export default function ManagePage() {
     demoUrl: '',
     techStack: '',
     screenshots: '',
+      displayOrder: projects.length + 1,
+      isVisible: true,
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -217,7 +221,7 @@ export default function ManagePage() {
     setLoadingData(true);
     try {
       const [projRes, visRes, msgRes, statRes] = await Promise.all([
-        fetch('/api/projects'),
+        fetch('/api/projects?all=true'),
         fetch('/api/visitors'),
         fetch('/api/contact'),
         fetch('/api/manage/stats'),
@@ -230,7 +234,14 @@ export default function ManagePage() {
         statRes.json(),
       ]);
 
-      if (projData.data) setProjects(projData.data);
+      if (projData.data) {
+        const sorted = [...projData.data].sort((a: any, b: any) => {
+          const orderA = typeof a.displayOrder === 'number' && a.displayOrder > 0 ? a.displayOrder : 999999;
+          const orderB = typeof b.displayOrder === 'number' && b.displayOrder > 0 ? b.displayOrder : 999999;
+          return orderA - orderB;
+        });
+        setProjects(sorted);
+      }
       if (visData.data) setVisitors(visData.data);
       if (msgData.data) setMessages(msgData.data);
       if (statData.data) setStats(statData.data);
@@ -255,6 +266,8 @@ export default function ManagePage() {
       demoUrl: '',
       techStack: '',
       screenshots: '',
+      displayOrder: projects.length + 1,
+      isVisible: true,
     });
     setShowProjectModal(true);
   };
@@ -273,6 +286,8 @@ export default function ManagePage() {
       demoUrl: proj.demoUrl || '',
       techStack: Array.isArray(proj.techStack) ? proj.techStack.join(', ') : '',
       screenshots: getProjectImages(proj).join('\n'),
+      displayOrder: typeof proj.displayOrder === 'number' && proj.displayOrder > 0 ? proj.displayOrder : 1,
+      isVisible: proj.isVisible !== false,
     });
     setShowProjectModal(true);
   };
@@ -295,6 +310,8 @@ export default function ManagePage() {
         techStack: projectForm.techStack.split(',').map((s) => s.trim()).filter(Boolean),
         screenshots: images,
         firstScreenShot: images[0] || '',
+        displayOrder: Number(projectForm.displayOrder) || 1,
+        isVisible: Boolean(projectForm.isVisible),
       };
 
       const res = await fetch('/api/projects', {
@@ -322,6 +339,64 @@ export default function ManagePage() {
       }
     } catch (err) {
       console.error('Failed to delete project:', err);
+    }
+  };
+
+  // Move Project Up or Down in display order
+  const handleMoveProject = async (projId: string, direction: 'up' | 'down') => {
+    const currentIndex = projects.findIndex((p) => (p.id || p._id) === projId);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= projects.length) return;
+
+    const newProjects = [...projects];
+    const [moved] = newProjects.splice(currentIndex, 1);
+    newProjects.splice(targetIndex, 0, moved);
+
+    // Reassign sequential displayOrder 1, 2, 3...
+    const updated = newProjects.map((p, idx) => ({
+      ...p,
+      displayOrder: idx + 1,
+    }));
+
+    setProjects(updated);
+
+    try {
+      await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reorder',
+          orders: updated.map((p, idx) => ({
+            id: p.id || p._id,
+            displayOrder: idx + 1,
+          })),
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save project reorder:', err);
+    }
+  };
+
+  // Toggle Project visibility (Show / Hide on portfolio)
+  const handleToggleVisibility = async (projId: string, currentVisible: boolean) => {
+    const newVisible = !currentVisible;
+    setProjects((prev) =>
+      prev.map((p) => ((p.id || p._id) === projId ? { ...p, isVisible: newVisible } : p))
+    );
+
+    try {
+      await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle-visibility',
+          id: projId,
+          isVisible: newVisible,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to toggle project visibility:', err);
     }
   };
 
@@ -379,7 +454,7 @@ export default function ManagePage() {
         proj.title.toLowerCase().includes(projectSearch.toLowerCase()) ||
         (Array.isArray(proj.techStack) && proj.techStack.some((t) => t.toLowerCase().includes(projectSearch.toLowerCase())));
       const matchesStatus =
-        projectStatusFilter === 'all' || proj.status.toLowerCase() === projectStatusFilter.toLowerCase();
+        projectStatusFilter === 'all' ? true : projectStatusFilter === 'visible' ? proj.isVisible !== false : projectStatusFilter === 'hidden' ? proj.isVisible === false : proj.status.toLowerCase() === projectStatusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
   }, [projects, projectSearch, projectStatusFilter]);
@@ -938,7 +1013,7 @@ SMTP_PASS=your_gmail_app_password`;
                     <span>Filter:</span>
                   </div>
                   <div style={{ display: 'flex', gap: '0.375rem' }}>
-                    {['all', 'completed', 'in-progress'].map((st) => (
+                    {['all', 'visible', 'hidden', 'completed', 'in-progress'].map((st) => (
                       <button
                         key={st}
                         onClick={() => setProjectStatusFilter(st)}
@@ -955,7 +1030,7 @@ SMTP_PASS=your_gmail_app_password`;
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        {st === 'all' ? 'All' : st.replace('-', ' ')}
+                        {st === 'all' ? 'All' : st === 'visible' ? 'Visible' : st === 'hidden' ? 'Hidden' : st.replace('-', ' ')}
                       </button>
                     ))}
                   </div>
@@ -982,12 +1057,15 @@ SMTP_PASS=your_gmail_app_password`;
                 </div>
               ) : (
                 <div className="manage-projects-grid">
-                  {filteredProjects.map((proj) => {
+                  {filteredProjects.map((proj, cardIdx) => {
+                    const globalIdx = projects.findIndex((p) => (p.id || p._id) === (proj.id || proj._id));
+                    const rank = typeof proj.displayOrder === 'number' && proj.displayOrder > 0 ? proj.displayOrder : (globalIdx >= 0 ? globalIdx + 1 : cardIdx + 1);
+                    const isHidden = proj.isVisible === false;
                     const projId = proj.id || proj._id;
                     const isCompleted = proj.status === 'completed';
 
                     return (
-                      <div key={projId} className="manage-project-card">
+                      <div key={projId} className="manage-project-card" style={isHidden ? { borderColor: 'rgba(239, 68, 68, 0.4)', opacity: 0.92 } : undefined}>
                         {/* Project Banner Header */}
                         <div className="manage-project-banner">
                           {proj.firstScreenShot ? (
@@ -999,6 +1077,145 @@ SMTP_PASS=your_gmail_app_password`;
                             <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#64748b' }}>
                               <FolderPlus style={{ width: '32px', height: '32px', color: '#3584e4', marginBottom: '0.5rem' }} />
                               <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>No Screenshot Attached</span>
+                            </div>
+                          )}
+
+                          {/* Reorder and Visibility Controls (Top-Left) */}
+                          <div style={{ position: 'absolute', top: '0.875rem', left: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem', zIndex: 2 }}>
+                            {/* Order Number Badge */}
+                            <span
+                              style={{
+                                fontSize: '0.6875rem',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '0.375rem',
+                                fontWeight: 800,
+                                fontFamily: 'monospace',
+                                backdropFilter: 'blur(12px)',
+                                backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                                color: '#60a5fa',
+                                border: '1px solid rgba(59, 130, 246, 0.4)',
+                              }}
+                              title={`Current showing order: #${rank}`}
+                            >
+                              #{rank}
+                            </span>
+
+                            {/* Move Up */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoveProject(projId, 'up');
+                              }}
+                              disabled={globalIdx <= 0}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '0.375rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backdropFilter: 'blur(12px)',
+                                backgroundColor: globalIdx <= 0 ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.85)',
+                                color: globalIdx <= 0 ? '#475569' : '#cbd5e1',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                cursor: globalIdx <= 0 ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title="Move project up / earlier in order"
+                            >
+                              <ArrowUp style={{ width: '13px', height: '13px' }} />
+                            </button>
+
+                            {/* Move Down */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoveProject(projId, 'down');
+                              }}
+                              disabled={globalIdx === -1 || globalIdx >= projects.length - 1}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '0.375rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backdropFilter: 'blur(12px)',
+                                backgroundColor: globalIdx === -1 || globalIdx >= projects.length - 1 ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.85)',
+                                color: globalIdx === -1 || globalIdx >= projects.length - 1 ? '#475569' : '#cbd5e1',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                cursor: globalIdx === -1 || globalIdx >= projects.length - 1 ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title="Move project down / later in order"
+                            >
+                              <ArrowDown style={{ width: '13px', height: '13px' }} />
+                            </button>
+
+                            {/* Show / Hide Toggle Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleVisibility(projId, !isHidden);
+                              }}
+                              style={{
+                                height: '26px',
+                                padding: '0 0.5rem',
+                                borderRadius: '0.375rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                backdropFilter: 'blur(12px)',
+                                backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.25)' : 'rgba(51, 209, 122, 0.2)',
+                                color: isHidden ? '#fca5a5' : '#86efac',
+                                border: `1px solid ${isHidden ? 'rgba(239, 68, 68, 0.4)' : 'rgba(51, 209, 122, 0.4)'}`,
+                                cursor: 'pointer',
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                transition: 'all 0.15s ease',
+                              }}
+                              title={isHidden ? 'Click to show project on portfolio' : 'Click to hide project from portfolio'}
+                            >
+                              {isHidden ? (
+                                <>
+                                  <EyeOff style={{ width: '12px', height: '12px' }} />
+                                  <span>Hidden</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eye style={{ width: '12px', height: '12px' }} />
+                                  <span>Visible</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {isHidden && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                background: 'rgba(15, 23, 42, 0.88)',
+                                borderTop: '1px solid rgba(239, 68, 68, 0.4)',
+                                padding: '0.25rem 0.75rem',
+                                fontSize: '0.6875rem',
+                                color: '#fca5a5',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.375rem',
+                                backdropFilter: 'blur(6px)',
+                                zIndex: 1,
+                              }}
+                            >
+                              <EyeOff style={{ width: '12px', height: '12px' }} />
+                              <span>Hidden from public portfolio</span>
                             </div>
                           )}
 
@@ -1568,6 +1785,42 @@ SMTP_PASS=your_gmail_app_password`}
                     <option value="in-progress">In Progress</option>
                     <option value="planned">Planned</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Row: Visibility & Display Order */}
+              <div className="manage-form-row">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#cbd5e1' }}>
+                    Portfolio Visibility
+                  </label>
+                  <select
+                    value={projectForm.isVisible ? 'visible' : 'hidden'}
+                    onChange={(e) =>
+                      setProjectForm({ ...projectForm, isVisible: e.target.value === 'visible' })
+                    }
+                    className="manage-input"
+                    style={{ background: '#090e1a' }}
+                  >
+                    <option value="visible">Visible on Portfolio</option>
+                    <option value="hidden">Hidden from Portfolio</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#cbd5e1' }}>
+                    Display Order (Showing Sequence)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={projectForm.displayOrder}
+                    onChange={(e) =>
+                      setProjectForm({ ...projectForm, displayOrder: Math.max(1, Number(e.target.value)) })
+                    }
+                    className="manage-input"
+                    placeholder="1"
+                  />
                 </div>
               </div>
 
