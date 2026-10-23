@@ -540,10 +540,19 @@ export default function ProjectsWindow({ theme }: ProjectsWindowProps) {
               {project.title}
             </h3>
 
-            <p className={`text-xs mb-3 font-['JetBrains_Mono'] ${
-              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-            }`}>
-              {getParagraphs(project.description)[0] || 'No description provided.'}
+            <p
+              className={`text-xs mb-3 font-['JetBrains_Mono'] line-clamp-6 ${
+                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+              }`}
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 6,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                lineHeight: 1.5,
+              }}
+            >
+              {getParagraphs(project.description).join(' ') || 'No description provided.'}
             </p>
 
             <div className="flex flex-wrap gap-1 mb-3">

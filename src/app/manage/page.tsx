@@ -1031,7 +1031,7 @@ SMTP_PASS=your_gmail_app_password`;
                           <div>
                             <div className="manage-project-title">{proj.title}</div>
                             <div className="manage-project-desc">
-                              {Array.isArray(proj.description) ? proj.description[0] : proj.description}
+                              {Array.isArray(proj.description) ? proj.description.join(' ') : proj.description}
                             </div>
                           </div>
 

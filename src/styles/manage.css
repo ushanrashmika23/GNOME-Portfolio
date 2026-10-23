@@ -321,6 +321,10 @@
   color: var(--manage-text-muted) !important;
   line-height: 1.6 !important;
   margin-top: 0.5rem !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 6 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
 }
 
 .manage-project-tags {
